@@ -1,0 +1,5 @@
+CREATE INDEX idx_stg_transaction_datetime
+ON staging.transactions_normalized(transaction_datetime);
+
+CREATE INDEX idx_stg_account_name
+ON staging.transactions_normalized(account_name);
