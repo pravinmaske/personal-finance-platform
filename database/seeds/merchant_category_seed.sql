@@ -73,3 +73,8 @@ INSERT INTO dim.merchant_category VALUES
 ('401672 64363663 INTERNET TRANSFER','Loan','Home Loan'),
 ('Pravin Maske Revoult','Transfer','Transfer to Revolut'),
 ('AJABE A HUSBAND TRANSFER','Transfer','Internal Transfer');
+
+INSERT INTO dim.merchant_category VALUES
+('Payment from MASKE','Transfer','Internal Transfer'),
+('SUMUP *JADE HOUSE COVENTRY','Food','Takeaway'),
+('To Donald Taylor','Entertainment','Family Activity');
