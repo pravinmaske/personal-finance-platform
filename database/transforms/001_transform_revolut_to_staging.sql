@@ -35,6 +35,9 @@ TRUNCATE TABLE staging.transactions_normalized;
 --     source_file_name
 -- FROM raw.revolut_transactions;
 
+--
+-- # BELOW TRANSFORMATION IS CREATED FOR REVOLUT TRANSACTIONS
+--
 
 INSERT INTO staging.transactions_normalized (
     account_name,

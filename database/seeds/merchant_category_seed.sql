@@ -40,7 +40,7 @@ INSERT INTO dim.merchant_category VALUES
 INSERT INTO dim.merchant_category VALUES
 
 ('Edf Energy','Utilities','Electricity'),
-('Coventry Cc','Housing','Council Tax'),
+('Coventry Cc','Housing','Council Tax'), 
 ('EasyJet','Travel','Flights'),
 ('PayPoint','Utilities','Bill Payment'),
 ('Zeelo','Transport','Shuttle'),
@@ -49,3 +49,10 @@ INSERT INTO dim.merchant_category VALUES
 ('bet365','Entertainment','Betting'),
 ('Dudley Zoo','Entertainment','Family Activity'),
 ('Charlie''s Halal Meat','Groceries','Meat Shop');
+
+
+-- added Salary category
+INSERT INTO dim.merchant_category
+(merchant_name, category, sub_category)
+VALUES
+('JAGUAR LAND ROVER','Income','Salary');
