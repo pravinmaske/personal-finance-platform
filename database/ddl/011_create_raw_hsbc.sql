@@ -12,3 +12,10 @@ source_file_name VARCHAR(200),
 ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 );
+
+-- update table raw.hsbc_transactions set account_name = "HSBC", source_file_name = "hsbc_2026_jan_feb.csv";
+UPDATE raw.hsbc_transactions 
+SET account_name = 'HSBC', 
+    source_file_name = 'hsbc_2026_jan_feb.csv';
+
+select * from raw.hsbc_transactions; 
