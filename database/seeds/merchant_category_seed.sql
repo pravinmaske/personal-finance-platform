@@ -78,3 +78,5 @@ INSERT INTO dim.merchant_category VALUES
 ('Payment from MASKE','Transfer','Internal Transfer'),
 ('SUMUP *JADE HOUSE COVENTRY','Food','Takeaway'),
 ('To Donald Taylor','Entertainment','Family Activity');
+
+update dim.merchant_category set category='Transport', sub_category='Fuel' where merchant_name='ASDA PETROL 4231¶COVENTRY'
