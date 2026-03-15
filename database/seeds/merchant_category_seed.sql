@@ -56,3 +56,20 @@ INSERT INTO dim.merchant_category
 (merchant_name, category, sub_category)
 VALUES
 ('JAGUAR LAND ROVER','Income','Salary');
+
+-- more categories from HSBC transactions:
+INSERT INTO dim.merchant_category VALUES
+('LIDL','Groceries','Supermarket'),
+('ASDA','Groceries','Supermarket'),
+('TESCO','Groceries','Supermarket'),
+('grocery coventry market','Groceries','Local Market'),
+('Mum and Dads sup Coventry','Groceries','Indian Grocery'),
+('PPOINT_*AFRICA','Groceries','Local Grocery'),
+('SUMUP JADE HOUSE','Food','Takeaway'),
+('ASDA PETROL','Transport','Fuel'),
+('CROSSCOUNTRY','Transport','Train'),
+('O2 Recharge','Telecom','Mobile'),
+('Trading 212 London Investment','Investment','Stocks'),
+('401672 64363663 INTERNET TRANSFER','Loan','Home Loan'),
+('Pravin Maske Revoult','Transfer','Transfer to Revolut'),
+('AJABE A HUSBAND TRANSFER','Transfer','Internal Transfer');
