@@ -16,8 +16,8 @@ INSERT INTO dim.merchant_category (keyword, category, subcategory) VALUES
 ('Opus Foods',      'Groceries',    'Asian Grocery'),
 ('Asian Fresh Fish','Groceries',    'Fish & Meat'),
 ('SWAN DELIGHTS',   'Groceries',    'Asian Grocery'),
-('Charlie Halal',   'Groceries',    'Fish & Meat'),
-('Mum and Dads',    'Groceries',    'Asian Grocery'),
+('Charlie',         'Groceries',    'Fish & Meat'),
+('Mum and Dads',    'Groceries',    'Supermarket'),
 -- Dining & Takeaway
 ('JADE HOUSE',      'Dining',       'Takeaway'),
 ('Malabar Bites',   'Dining',       'Takeaway'),
