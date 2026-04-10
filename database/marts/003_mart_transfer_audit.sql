@@ -78,7 +78,34 @@ WHERE transaction_class = 'TRANSFER'
 
 UNION ALL
 
--- Pair 3: HSBC → India (one-sided — no counterpart in pipeline)
+-- Pair 3: Barclays → Revolut (wife funding Revolut directly)
+-- Both sides share sub_type BARCLAYS_TO_REVOLUT — split by account_name
+SELECT
+    'BARCLAYS_TO_REVOLUT ↔ REVOLUT AJABE TOPUP',
+    SUM(amount) FILTER (
+        WHERE transaction_sub_type = 'BARCLAYS_TO_REVOLUT'
+          AND account_name = 'BARCLAYS'
+    ),
+    SUM(amount) FILTER (
+        WHERE transaction_sub_type = 'BARCLAYS_TO_REVOLUT'
+          AND account_name = 'REVOLUT'
+    ),
+    SUM(amount) FILTER (
+        WHERE transaction_sub_type = 'BARCLAYS_TO_REVOLUT'
+    ),
+    CASE
+        WHEN ABS(SUM(amount) FILTER (
+            WHERE transaction_sub_type = 'BARCLAYS_TO_REVOLUT'
+        )) < 0.01
+        THEN 'PASS'
+        ELSE 'FAIL — amounts do not match'
+    END
+FROM staging.transactions_normalized
+WHERE transaction_class = 'TRANSFER'
+
+UNION ALL
+
+-- Pair 4: HSBC → India (one-sided — no counterpart in pipeline)
 SELECT
     'HSBC_TO_INDIA (one-sided, no counterpart)',
     SUM(amount) FILTER (WHERE transaction_sub_type = 'HSBC_TO_INDIA'),
