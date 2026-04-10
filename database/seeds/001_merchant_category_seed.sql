@@ -8,8 +8,10 @@ TRUNCATE TABLE dim.merchant_category RESTART IDENTITY;
 
 INSERT INTO dim.merchant_category (keyword, category, subcategory) VALUES
 -- Groceries
+('grocery coventry','Groceries',    'Supermarket'),
+('ADSA STORES',     'Groceries',    'Supermarket'),  -- typo of ASDA in HSBC export
 ('LIDL',            'Groceries',    'Supermarket'),
-('ASDA',            'Groceries',    'Supermarket'),
+('ASDA STORES',      'Groceries',    'Supermarket'),  -- specific: avoids matching ASDA PETROL
 ('TESCO',           'Groceries',    'Supermarket'),
 ('ICELAND',         'Groceries',    'Supermarket'),
 ('ALDI',            'Groceries',    'Supermarket'),
@@ -47,6 +49,21 @@ INSERT INTO dim.merchant_category (keyword, category, subcategory) VALUES
 -- Food at work
 ('CONNECT CATERING','Food at Work', 'Office Food'),
 ('PPOINT',          'Food at Work', 'Office Food'),
+('JAGUAR LAND ROVER COVENTRY', 'Food at Work', 'Office Vending'),  -- £0.65 vending machine; paid_in salary rows are excluded by transaction_class filter
+-- Childcare
+('Pattison College',  'Childcare',    'Nursery Fees'),
+-- Personal Care
+('Barber',            'Personal Care','Haircut'),
+-- Parking
+('RingGo',            'Transport',    'Parking'),
+-- Cash withdrawal
+('CASH NOTEMAC',      'Cash',         'ATM Withdrawal'),
+('CASH NOTE',         'Cash',         'ATM Withdrawal'),
+-- Travel / Holiday
+('Booking.com',       'Travel',       'Holiday'),
+('AMSTERDAM',         'Travel',       'Holiday'),
+-- Groceries additions
+('Al Halal',          'Groceries',    'Fish & Meat'),
 -- Online Shopping
-('Temu',            'Shopping',     'Online'),
-('Donald Taylor',   'Shopping',     'Personal Transfer');
+('Temu',              'Shopping',     'Online'),
+('Donald Taylor',     'Shopping',     'Personal Transfer');

@@ -52,7 +52,8 @@ SELECT
     source_file_name,
     ingestion_timestamp,
     transaction_date::TIMESTAMP,
-    description,
+    -- Clean up newline characters that HSBC embeds in descriptions
+    REGEXP_REPLACE(description, E'[\\n\\r]+', ' ', 'g') AS description,
     -- Signed amount: paid_out = negative, paid_in = positive
     CASE
         WHEN paid_out IS NOT NULL THEN -paid_out
@@ -93,11 +94,9 @@ SELECT
         WHEN paid_in IS NOT NULL
          AND description ILIKE '%JAGUAR LAND ROVER%'
             THEN 'SALARY_PRAVIN'
-
         WHEN paid_in IS NOT NULL
          AND description ILIKE '%AJABE%'
             THEN 'HSBC_WIFE_TRANSFER'
-
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%Pravin Maske Revoult%'
             THEN 'HSBC_TO_REVOLUT'

@@ -53,18 +53,26 @@ SELECT
     currency,
     -- transaction_class
     CASE
-        -- TRANSFER: money arriving from HSBC via Topup
+        -- TRANSFER: money arriving from HSBC (Pravin topping up Revolut)
         WHEN transaction_type = 'Topup'
          AND description ILIKE '%Payment from MASKE%'
             THEN 'TRANSFER'
+        -- TRANSFER: money arriving from Barclays (wife sending via AJABE)
+        WHEN transaction_type = 'Topup'
+         AND description ILIKE '%Payment from AJABE%'
+            THEN 'TRANSFER'
+        -- INCOME: friend/family paying back
+        WHEN transaction_type = 'Transfer'
+         AND amount > 0
+         AND description ILIKE '%Transfer from%'
+            THEN 'INCOME'
         -- REFUND: merchant returning money
         WHEN transaction_type = 'Card Refund'
             THEN 'REFUND'
-        -- EXPENSE: card payments and bill transfers going out
-        WHEN transaction_type IN ('Card Payment', 'Transfer')
+        -- EXPENSE: card payments, bill transfers, and Rev Payments going out
+        WHEN transaction_type IN ('Card Payment', 'Transfer', 'Rev Payment')
          AND amount < 0
             THEN 'EXPENSE'
-        -- Safety net: any positive amount not caught above
         ELSE NULL
     END AS transaction_class,
     -- transaction_sub_type
@@ -72,14 +80,20 @@ SELECT
         WHEN transaction_type = 'Topup'
          AND description ILIKE '%Payment from MASKE%'
             THEN 'REVOLUT_TOPUP'
-
+        -- Barclays → Revolut (wife funding Revolut directly)
+        WHEN transaction_type = 'Topup'
+         AND description ILIKE '%Payment from AJABE%'
+            THEN 'BARCLAYS_TO_REVOLUT'
+        -- Friend/family repayment
+        WHEN transaction_type = 'Transfer'
+         AND amount > 0
+         AND description ILIKE '%Transfer from%'
+            THEN 'OTHER_INCOME'
         WHEN transaction_type = 'Card Refund'
             THEN 'MERCHANT_REFUND'
-
-        WHEN transaction_type IN ('Card Payment', 'Transfer')
+        WHEN transaction_type IN ('Card Payment', 'Transfer', 'Rev Payment')
          AND amount < 0
-            THEN NULL   -- EXPENSE: category comes from dim.merchant_category
-
+            THEN NULL   -- EXPENSE: category resolved via dim.merchant_category
         ELSE NULL
     END AS transaction_sub_type,
     transaction_type AS raw_transaction_type

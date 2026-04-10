@@ -47,6 +47,7 @@ SELECT
     ingestion_timestamp,
     transaction_date::TIMESTAMP,
     description,
+
     CASE
         WHEN paid_out IS NOT NULL THEN -paid_out
         WHEN paid_in  IS NOT NULL THEN  paid_in
@@ -61,6 +62,11 @@ SELECT
         -- TRANSFER: wife sending to Pravin's HSBC
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%Husband Transfer%'
+            THEN 'TRANSFER'
+        -- TRANSFER: wife sending directly to Pravin's Revolut
+        -- (used for nursery fees, holiday bookings, shared expenses)
+        WHEN paid_out IS NOT NULL
+         AND description ILIKE '%Bill Payment to Pravin Maske Revolut%'
             THEN 'TRANSFER'
         -- TRANSFER: moving money to savings/emergency fund
         WHEN paid_out IS NOT NULL
@@ -78,22 +84,20 @@ SELECT
         WHEN paid_in IS NOT NULL
          AND description ILIKE '%John Crane%'
             THEN 'SALARY_WIFE'
-
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%Husband Transfer%'
             THEN 'BARCLAYS_TO_HSBC'
-
+        -- New sub_type: Barclays funding Revolut directly
+        WHEN paid_out IS NOT NULL
+         AND description ILIKE '%Bill Payment to Pravin Maske Revolut%'
+            THEN 'BARCLAYS_TO_REVOLUT'
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%emergency fund%'
             THEN 'BARCLAYS_TO_SAVINGS'
-
         WHEN paid_out IS NOT NULL
             THEN NULL
-
         WHEN paid_in IS NOT NULL
             THEN 'MERCHANT_REFUND'
     END AS transaction_sub_type,
-
     'BARCLAYS_BANK_EXPORT' AS raw_transaction_type
-
 FROM raw.barclays_transactions;
