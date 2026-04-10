@@ -39,7 +39,7 @@ WITH salary_check AS (
 )
 SELECT
     'TEST 2 FAIL — salary mismatch' AS test,
-    month,
+    salary_check.month,
     transaction_sub_type,
     actual,
     expected
@@ -47,8 +47,10 @@ FROM salary_check
 JOIN (VALUES
     ('2026-01-01'::DATE, 'SALARY_PRAVIN', 3195.32),
     ('2026-02-01'::DATE, 'SALARY_PRAVIN', 3195.31),
+    ('2026-03-01'::DATE, 'SALARY_PRAVIN', 3194.91),
     ('2026-01-01'::DATE, 'SALARY_WIFE',   2790.10),
-    ('2026-02-01'::DATE, 'SALARY_WIFE',   2790.30)
+    ('2026-02-01'::DATE, 'SALARY_WIFE',   2790.30),
+    ('2026-03-01'::DATE, 'SALARY_WIFE',   2790.30)
 ) AS expected_vals (month, sub_type, expected)
     ON salary_check.month = expected_vals.month
    AND salary_check.transaction_sub_type = expected_vals.sub_type
@@ -83,19 +85,19 @@ HAVING ABS(SUM(amount)) > 0.01;
 
 -- -------------------------------------------------------------
 -- TEST 5: January HSBC expenses match expected
--- Expected true expenses (excludes transfers, investments):
---   £1,294.99 (all paid_out except Pravin Maske, 401672, Trading 212, JLR 0.65)
+-- £1,295.64 = all paid_out except transfers (Pravin Maske, 401672) and investment (Trading 212)
+-- Includes JLR vending machine £0.65 — confirmed real expense
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
     'TEST 5 FAIL — Jan HSBC expense total mismatch' AS test,
     SUM(ABS(amount))    AS actual,
-    1294.99             AS expected
+    1295.64             AS expected
 FROM staging.transactions_normalized
 WHERE account_name = 'HSBC'
   AND transaction_class = 'EXPENSE'
   AND DATE_TRUNC('month', transaction_datetime) = '2026-01-01'
-HAVING ABS(SUM(ABS(amount)) - 1294.99) > 0.01;
+HAVING ABS(SUM(ABS(amount)) - 1295.64) > 0.01;
 
 
 -- -------------------------------------------------------------
@@ -116,23 +118,26 @@ HAVING ABS(SUM(ABS(amount)) - 604.60) > 0.01;
 
 -- -------------------------------------------------------------
 -- TEST 7: February Revolut expenses match expected
--- All Card Payment + Transfer outflows = £1,175.55
+-- £1,204.69 — includes second Trainline £29.14 (two separate purchases on 8 Feb,
+-- confirmed from different started_at timestamps in source CSV)
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
     'TEST 7 FAIL — Feb Revolut expense total mismatch' AS test,
     SUM(ABS(amount))    AS actual,
-    1175.55             AS expected
+    1204.69             AS expected
 FROM staging.transactions_normalized
 WHERE account_name = 'REVOLUT'
   AND transaction_class = 'EXPENSE'
   AND DATE_TRUNC('month', transaction_datetime) = '2026-02-01'
-HAVING ABS(SUM(ABS(amount)) - 1175.55) > 0.01;
+HAVING ABS(SUM(ABS(amount)) - 1204.69) > 0.01;
 
 
 -- -------------------------------------------------------------
 -- TEST 8: Row count sanity check
--- HSBC = 46 rows, Revolut = 74 rows, Barclays = 7 rows
+-- HSBC: 46 Jan/Feb + 8 March = 54
+-- REVOLUT: 75 Jan/Feb + 56 March = 131
+-- BARCLAYS: 7 Jan/Feb + 4 March = 11
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 WITH counts AS (
@@ -147,9 +152,9 @@ SELECT
     expected_count
 FROM counts
 JOIN (VALUES
-    ('HSBC',     46),
-    ('REVOLUT',  74),
-    ('BARCLAYS',  7)
+    ('HSBC',     54),
+    ('REVOLUT', 131),
+    ('BARCLAYS', 11)
 ) AS expected_counts (account_name, expected_count) USING (account_name)
 WHERE actual_count <> expected_count;
 
