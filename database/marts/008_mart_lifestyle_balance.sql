@@ -21,15 +21,25 @@
 -- =============================================================
 
 CREATE OR REPLACE VIEW mart.lifestyle_balance AS
-WITH monthly_cats AS (
-    SELECT
+WITH deduped AS (
+    -- Ensure each transaction matches at most one keyword (longest/most specific wins)
+    SELECT DISTINCT ON (t.id)
+        t.id,
         DATE_TRUNC('month', t.transaction_datetime)     AS month,
-        COALESCE(mc.category, 'Uncategorised')          AS category,
-        ABS(SUM(t.amount))                              AS total_spent
+        t.amount,
+        COALESCE(mc.category, 'Uncategorised')          AS category
     FROM staging.transactions_normalized t
     LEFT JOIN dim.merchant_category mc
         ON t.description ILIKE ('%' || mc.keyword || '%')
     WHERE t.transaction_class = 'EXPENSE'
+    ORDER BY t.id, LENGTH(mc.keyword) DESC NULLS LAST
+),
+monthly_cats AS (
+    SELECT
+        month,
+        category,
+        ABS(SUM(amount))                                AS total_spent
+    FROM deduped
     GROUP BY 1, 2
 ),
 pivoted AS (
@@ -67,13 +77,10 @@ pivoted AS (
         COALESCE(SUM(total_spent) FILTER (
             WHERE category = 'Health'
         ), 0)                                           AS health_gym,
-
         COALESCE(SUM(total_spent) FILTER (
             WHERE category = 'Uncategorised'
         ), 0)                                           AS uncategorised,
-
         SUM(total_spent)                                AS total_expense
-
     FROM monthly_cats
     GROUP BY 1
 )
