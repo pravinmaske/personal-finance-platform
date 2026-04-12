@@ -11,7 +11,8 @@ INSERT INTO dim.merchant_category (keyword, category, subcategory) VALUES
 ('grocery coventry','Groceries',    'Supermarket'),
 ('ADSA STORES',     'Groceries',    'Supermarket'),  -- typo of ASDA in HSBC export
 ('LIDL',            'Groceries',    'Supermarket'),
-('ASDA STORES',      'Groceries',    'Supermarket'),  -- specific: avoids matching ASDA PETROL
+('ASDA STORES',      'Groceries',    'Supermarket'),  -- HSBC format: avoids matching ASDA PETROL
+('Asda',             'Groceries',    'Supermarket'),  -- Revolut format: short description
 ('TESCO',           'Groceries',    'Supermarket'),
 ('ICELAND',         'Groceries',    'Supermarket'),
 ('ALDI',            'Groceries',    'Supermarket'),
@@ -60,8 +61,7 @@ INSERT INTO dim.merchant_category (keyword, category, subcategory) VALUES
 ('CASH NOTEMAC',      'Cash',         'ATM Withdrawal'),
 ('CASH NOTE',         'Cash',         'ATM Withdrawal'),
 -- Travel / Holiday
-('Booking.com',       'Travel',       'Holiday'),
-('AMSTERDAM',         'Travel',       'Holiday'),
+('Booking.com',       'Travel',       'Holiday'),   -- matches Booking.com*AMSTERDAM etc
 -- Groceries additions
 ('Al Halal',          'Groceries',    'Fish & Meat'),
 -- Online Shopping
