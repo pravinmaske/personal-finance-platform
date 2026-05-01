@@ -1,33 +1,35 @@
 -- =============================================================
 -- 002_transform_revolut_to_staging.sql
---
 -- Loads raw.revolut_transactions → staging.transactions_normalized
 --
 -- Revolut amount is already signed:
---   negative = money leaving Revolut
---   positive = money arriving in Revolut
+--   negative = money leaving, positive = money arriving
 --
 -- transaction_type reference:
---   Topup        → money arriving from HSBC (TRANSFER_IN)
---   Card Payment → money spent at a merchant (EXPENSE)
---   Transfer     → bill payments sent out (EDF, Council Tax, Gym) → EXPENSE
---   Card Refund  → merchant refunding money (REFUND)
+--   Topup        → money arriving (transfer in)
+--   Card Payment → merchant spend (EXPENSE)
+--   Transfer     → bill payments out (EXPENSE) or person transfers
+--   Rev Payment  → Revolut-native payments e.g. Booking.com (EXPENSE)
+--   Card Refund  → merchant refund (REFUND)
 --
--- Classification logic:
---
+-- Classification:
 --   TRANSFER / REVOLUT_TOPUP
---     → transaction_type = 'Topup' AND description ILIKE '%Payment from MASKE%'
---       (counterpart is HSBC "Pravin Maske Revoult" TRANSFER_OUT)
+--     → Topup from MASKE (from HSBC)
 --
---   EXPENSE
---     → transaction_type IN ('Card Payment', 'Transfer') AND amount < 0
---       This includes EDF Energy, Coventry Cc (council tax),
---       Coventry Sports (gym) — all real spending even though
---       Revolut labels them as "Transfer"
+--   TRANSFER / BARCLAYS_TO_REVOLUT
+--     → Topup from AJABE (from Barclays)
+--
+--   TRANSFER / PERSONAL_TRANSFER
+--     → Transfer TO a named person (e.g. Rajesh) — not real spending
+--
+--   INCOME / OTHER_INCOME
+--     → Transfer FROM a named person (e.g. Rajesh paying back)
 --
 --   REFUND / MERCHANT_REFUND
---     → transaction_type = 'Card Refund'
---       (Trainline, Temu refunds)
+--     → Card Refund type
+--
+--   EXPENSE
+--     → Card Payment, Transfer (bills), Rev Payment — amount < 0
 -- =============================================================
 
 INSERT INTO staging.transactions_normalized (
@@ -48,20 +50,18 @@ SELECT
     ingestion_timestamp,
     completed_at,
     description,
-    -- Amount already signed in Revolut export — use as-is
     amount,
     currency,
-    -- transaction_class
     CASE
         -- TRANSFER: money arriving from HSBC (Pravin topping up Revolut)
         WHEN transaction_type = 'Topup'
          AND description ILIKE '%Payment from MASKE%'
             THEN 'TRANSFER'
-        -- TRANSFER: money arriving from Barclays (wife sending via AJABE)
+        -- TRANSFER: money arriving from Barclays (wife via AJABE)
         WHEN transaction_type = 'Topup'
          AND description ILIKE '%Payment from AJABE%'
             THEN 'TRANSFER'
-        -- INCOME: friend/family paying back
+        -- INCOME: person paying Pravin back (e.g. Rajesh repayment March)
         WHEN transaction_type = 'Transfer'
          AND amount > 0
          AND description ILIKE '%Transfer from%'
@@ -69,22 +69,20 @@ SELECT
         -- REFUND: merchant returning money
         WHEN transaction_type = 'Card Refund'
             THEN 'REFUND'
-        -- EXPENSE: card payments, bill transfers, and Rev Payments going out
+        -- EXPENSE: all outgoing card payments, bill transfers, Rev Payments
+        -- including person-to-person transfers for shared expenses (e.g. Belfast trip)
         WHEN transaction_type IN ('Card Payment', 'Transfer', 'Rev Payment')
          AND amount < 0
             THEN 'EXPENSE'
         ELSE NULL
     END AS transaction_class,
-    -- transaction_sub_type
     CASE
         WHEN transaction_type = 'Topup'
          AND description ILIKE '%Payment from MASKE%'
             THEN 'REVOLUT_TOPUP'
-        -- Barclays → Revolut (wife funding Revolut directly)
         WHEN transaction_type = 'Topup'
          AND description ILIKE '%Payment from AJABE%'
             THEN 'BARCLAYS_TO_REVOLUT'
-        -- Friend/family repayment
         WHEN transaction_type = 'Transfer'
          AND amount > 0
          AND description ILIKE '%Transfer from%'

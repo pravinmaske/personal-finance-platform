@@ -27,7 +27,6 @@
 -- =============================================================
 
 CREATE OR REPLACE VIEW mart.transfer_audit AS
-
 -- Pair 1: HSBC → Revolut
 SELECT
     'HSBC_TO_REVOLUT ↔ REVOLUT_TOPUP'              AS transfer_pair,
@@ -47,12 +46,9 @@ SELECT
         THEN 'PASS'
         ELSE 'FAIL — amounts do not match'
     END                                             AS status
-
 FROM staging.transactions_normalized
 WHERE transaction_class = 'TRANSFER'
-
 UNION ALL
-
 -- Pair 2: Barclays → HSBC (wife transfers)
 SELECT
     'BARCLAYS_TO_HSBC ↔ HSBC_WIFE_TRANSFER',
@@ -72,12 +68,9 @@ SELECT
         THEN 'PASS'
         ELSE 'FAIL — amounts do not match'
     END
-
 FROM staging.transactions_normalized
 WHERE transaction_class = 'TRANSFER'
-
 UNION ALL
-
 -- Pair 3: Barclays → Revolut (wife funding Revolut directly)
 -- Both sides share sub_type BARCLAYS_TO_REVOLUT — split by account_name
 SELECT
@@ -102,9 +95,7 @@ SELECT
     END
 FROM staging.transactions_normalized
 WHERE transaction_class = 'TRANSFER'
-
 UNION ALL
-
 -- Pair 4: HSBC → India (one-sided — no counterpart in pipeline)
 SELECT
     'HSBC_TO_INDIA (one-sided, no counterpart)',
@@ -114,9 +105,7 @@ SELECT
     'INFO — India account not in pipeline'
 FROM staging.transactions_normalized
 WHERE transaction_class = 'TRANSFER'
-
 UNION ALL
-
 -- Pair 4: Barclays → Savings (one-sided)
 SELECT
     'BARCLAYS_TO_SAVINGS (one-sided, no counterpart)',

@@ -1,32 +1,24 @@
 -- =============================================================
 -- 003_transform_barclays_to_staging.sql
---
 -- Loads raw.barclays_transactions → staging.transactions_normalized
 --
--- Sign convention (same as HSBC):
---   paid_out → negative (money leaving Barclays)
---   paid_in  → positive (money arriving in Barclays)
---
--- Classification logic:
---
+-- Classification:
 --   INCOME / SALARY_WIFE
---     → "John Crane UK" paid_in
---       (wife's salary from her employer)
+--     → "John Crane UK" paid_in (wife's salary)
 --
 --   TRANSFER / BARCLAYS_TO_HSBC
---     → "Husband Transfer" paid_out
---       (wife sending money to Pravin's HSBC)
---       counterpart is HSBC "AJABE HUSBAND TRANSFER" paid_in
+--     → "Husband Transfer" paid_out          (regular monthly transfer)
+--     → "Bill Payment to Pravin Maske HSBC"  (reimbursement — e.g. April rent payback)
+--
+--   TRANSFER / BARCLAYS_TO_REVOLUT
+--     → "Bill Payment to Pravin Maske Revolut" paid_out
+--       (wife funding Revolut directly — nursery fees, shared expenses)
 --
 --   TRANSFER / BARCLAYS_TO_SAVINGS
 --     → "emergency fund" paid_out
---       (money moved to savings — still the household's money)
 --
---   EXPENSE
---     → any other paid_out not matched above
---
---   REFUND
---     → any other paid_in not matched above
+--   EXPENSE → any other paid_out
+--   REFUND  → any other paid_in
 -- =============================================================
 
 INSERT INTO staging.transactions_normalized (
@@ -47,47 +39,39 @@ SELECT
     ingestion_timestamp,
     transaction_date::TIMESTAMP,
     description,
-
     CASE
         WHEN paid_out IS NOT NULL THEN -paid_out
         WHEN paid_in  IS NOT NULL THEN  paid_in
     END AS amount,
     'GBP' AS currency,
-    -- transaction_class
     CASE
-        -- INCOME: wife's salary
         WHEN paid_in IS NOT NULL
          AND description ILIKE '%John Crane%'
             THEN 'INCOME'
-        -- TRANSFER: wife sending to Pravin's HSBC
         WHEN paid_out IS NOT NULL
-         AND description ILIKE '%Husband Transfer%'
+         AND (description ILIKE '%Husband Transfer%'
+           OR description ILIKE '%Bill Payment to Pravin Maske HSBC%')
             THEN 'TRANSFER'
-        -- TRANSFER: wife sending directly to Pravin's Revolut
-        -- (used for nursery fees, holiday bookings, shared expenses)
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%Bill Payment to Pravin Maske Revolut%'
             THEN 'TRANSFER'
-        -- TRANSFER: moving money to savings/emergency fund
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%emergency fund%'
             THEN 'TRANSFER'
-        -- EXPENSE: any other paid_out
         WHEN paid_out IS NOT NULL
             THEN 'EXPENSE'
-        -- REFUND: any other paid_in
         WHEN paid_in IS NOT NULL
             THEN 'REFUND'
     END AS transaction_class,
-    -- transaction_sub_type
     CASE
         WHEN paid_in IS NOT NULL
          AND description ILIKE '%John Crane%'
             THEN 'SALARY_WIFE'
         WHEN paid_out IS NOT NULL
-         AND description ILIKE '%Husband Transfer%'
+         AND (description ILIKE '%Husband Transfer%'
+           OR description ILIKE '%Bill Payment to Pravin Maske HSBC%')
             THEN 'BARCLAYS_TO_HSBC'
-        -- New sub_type: Barclays funding Revolut directly
+
         WHEN paid_out IS NOT NULL
          AND description ILIKE '%Bill Payment to Pravin Maske Revolut%'
             THEN 'BARCLAYS_TO_REVOLUT'

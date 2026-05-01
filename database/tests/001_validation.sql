@@ -1,16 +1,13 @@
 -- =============================================================
 -- 001_validation.sql
---
--- Run after 001_reload_staging.sql to verify your pipeline.
--- Expected values are calculated from raw source data.
--- Every query should return zero rows if the pipeline is correct.
+-- Run after staging reload to verify pipeline integrity.
+-- Every query should return zero rows if pipeline is correct.
 -- =============================================================
 
 
 -- -------------------------------------------------------------
 -- TEST 1: No unclassified rows
--- Every row must have a transaction_class. NULL means the
--- classification logic has a gap.
+-- Every row must have a transaction_class.
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
@@ -23,9 +20,7 @@ WHERE transaction_class IS NULL;
 
 
 -- -------------------------------------------------------------
--- TEST 2: Salary amounts correct
--- Pravin Jan: £3,195.32  Pravin Feb: £3,195.31
--- Wife   Jan: £2,790.10  Wife   Feb: £2,790.30
+-- TEST 2: Salary amounts correct across all months
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 WITH salary_check AS (
@@ -48,9 +43,11 @@ JOIN (VALUES
     ('2026-01-01'::DATE, 'SALARY_PRAVIN', 3195.32),
     ('2026-02-01'::DATE, 'SALARY_PRAVIN', 3195.31),
     ('2026-03-01'::DATE, 'SALARY_PRAVIN', 3194.91),
+    ('2026-04-01'::DATE, 'SALARY_PRAVIN', 3150.98),
     ('2026-01-01'::DATE, 'SALARY_WIFE',   2790.10),
     ('2026-02-01'::DATE, 'SALARY_WIFE',   2790.30),
-    ('2026-03-01'::DATE, 'SALARY_WIFE',   2790.30)
+    ('2026-03-01'::DATE, 'SALARY_WIFE',   2790.30),
+    ('2026-04-01'::DATE, 'SALARY_WIFE',   2790.30)
 ) AS expected_vals (month, sub_type, expected)
     ON salary_check.month = expected_vals.month
    AND salary_check.transaction_sub_type = expected_vals.sub_type
@@ -59,8 +56,7 @@ WHERE ABS(actual - expected) > 0.01;
 
 -- -------------------------------------------------------------
 -- TEST 3: HSBC ↔ Revolut transfer net = 0
--- HSBC_TO_REVOLUT + REVOLUT_TOPUP must sum to exactly zero
--- Expected: 0 rows (i.e. net IS zero)
+-- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
     'TEST 3 FAIL — HSBC↔Revolut transfer net not zero' AS test,
@@ -72,7 +68,6 @@ HAVING ABS(SUM(amount)) > 0.01;
 
 -- -------------------------------------------------------------
 -- TEST 4: Barclays ↔ HSBC wife transfer net = 0
--- BARCLAYS_TO_HSBC + HSBC_WIFE_TRANSFER must sum to zero
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
@@ -84,9 +79,8 @@ HAVING ABS(SUM(amount)) > 0.01;
 
 
 -- -------------------------------------------------------------
--- TEST 5: January HSBC expenses match expected
--- £1,295.64 = all paid_out except transfers (Pravin Maske, 401672) and investment (Trading 212)
--- Includes JLR vending machine £0.65 — confirmed real expense
+-- TEST 5: January HSBC expenses
+-- £1,295.64 — includes JLR vending machine £0.65
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
@@ -101,8 +95,7 @@ HAVING ABS(SUM(ABS(amount)) - 1295.64) > 0.01;
 
 
 -- -------------------------------------------------------------
--- TEST 6: January Revolut expenses match expected
--- All Card Payment + Transfer outflows = £604.60
+-- TEST 6: January Revolut expenses
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
@@ -117,9 +110,8 @@ HAVING ABS(SUM(ABS(amount)) - 604.60) > 0.01;
 
 
 -- -------------------------------------------------------------
--- TEST 7: February Revolut expenses match expected
--- £1,204.69 — includes second Trainline £29.14 (two separate purchases on 8 Feb,
--- confirmed from different started_at timestamps in source CSV)
+-- TEST 7: February Revolut expenses
+-- £1,204.69 — includes two Trainline purchases on 8 Feb
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 SELECT
@@ -134,10 +126,10 @@ HAVING ABS(SUM(ABS(amount)) - 1204.69) > 0.01;
 
 
 -- -------------------------------------------------------------
--- TEST 8: Row count sanity check
--- HSBC: 46 Jan/Feb + 8 March = 54
--- REVOLUT: 75 Jan/Feb + 56 March = 131
--- BARCLAYS: 7 Jan/Feb + 4 March = 11
+-- TEST 8: Row count sanity check — cumulative all months
+-- Jan/Feb: HSBC=46, REVOLUT=75, BARCLAYS=7
+-- March:   HSBC=8,  REVOLUT=56, BARCLAYS=4
+-- April:   HSBC=7,  REVOLUT=50, BARCLAYS=3
 -- Expected: 0 rows
 -- -------------------------------------------------------------
 WITH counts AS (
@@ -152,21 +144,22 @@ SELECT
     expected_count
 FROM counts
 JOIN (VALUES
-    ('HSBC',     54),
-    ('REVOLUT', 131),
-    ('BARCLAYS', 11)
+    ('HSBC',     61),   -- 46+8+7
+    ('REVOLUT', 181),   -- 75+56+50
+    ('BARCLAYS', 14)    -- 7+4+3
 ) AS expected_counts (account_name, expected_count) USING (account_name)
 WHERE actual_count <> expected_count;
 
 
 -- -------------------------------------------------------------
--- SUMMARY: class distribution (informational — always run this)
+-- SUMMARY: class distribution across all months (always run)
 -- -------------------------------------------------------------
 SELECT
+    DATE_TRUNC('month', transaction_datetime)   AS month,
     account_name,
     transaction_class,
-    COUNT(*)        AS row_count,
-    SUM(amount)     AS total_amount
+    COUNT(*)                                    AS row_count,
+    SUM(amount)                                 AS total_amount
 FROM staging.transactions_normalized
-GROUP BY 1, 2
-ORDER BY 1, 2;
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
